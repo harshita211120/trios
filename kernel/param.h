@@ -12,3 +12,6 @@
 #define FSSIZE      2000              // size of file system in blocks
 #define MAXPATH     128               // maximum file path name
 #define USERSTACK   1                 // user stack pages
+#define NGROUP       16       // maximum number of process groups
+#define BUDGET_BLOCK 0        // wait until budget becomes available
+#define BUDGET_FAIL  1        // reject the operation if budget is insufficient
