@@ -110,3 +110,11 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+uint64
+sys_setgroup(void)
+{
+  int gid;
+
+  argint(0, &gid);
+  return setgroup(gid);
+}

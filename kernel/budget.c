@@ -2,6 +2,7 @@
 #include "riscv.h"
 #include "param.h"
 #include "spinlock.h"
+#include "proc.h"
 #include "defs.h"
 
 // Shared state for one process group.
@@ -50,4 +51,23 @@ budgetinit(void)
   groups[0].max = 1000000000;
   groups[0].refill = 0;
   groups[0].mode = BUDGET_FAIL;
+}
+// Assign the calling process to an initialized group.
+int
+setgroup(int gid)
+{
+  struct proc *p = myproc();
+
+  if (gid < 0 || gid >= NGROUP)
+    return -1;
+
+  acquire(&groups[gid].lock);
+  if (!groups[gid].used) {
+    release(&groups[gid].lock);
+    return -1;
+  }
+  release(&groups[gid].lock);
+
+  p->gid = gid;
+  return 0;
 }
