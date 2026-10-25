@@ -51,12 +51,14 @@ procinit(void)
 
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+
   for (p = proc; p < &proc[NPROC]; p++) {
     initlock(&p->lock, "proc");
     p->state = UNUSED;
     p->kstack = KSTACK((int)(p - proc));
   }
-  
+
+  budgetinit();
 }
 
 // Must be called with interrupts disabled,
@@ -124,6 +126,7 @@ allocproc(void)
 
 found:
   p->pid = allocpid();
+  p->gid = 0;
   p->state = USED;
 
   // Allocate a trapframe page.
@@ -164,6 +167,7 @@ freeproc(struct proc *p)
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
+  p->gid = 0;
   p->name[0] = 0;
   p->chan = 0;
   p->killed = 0;
