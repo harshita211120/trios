@@ -1,6 +1,7 @@
 #define SBRK_ERROR ((char *)-1)
 
 struct stat;
+struct budgetinfo;
 
 // system calls
 int fork(void);
@@ -26,6 +27,9 @@ int pause(int);
 int uptime(void);
 int sync(void);
 int setgroup(int);
+int setbudget(int, int, int, int);
+int getbudget(int, struct budgetinfo *);
+
 // ulib.c
 int stat(const char *, struct stat *);
 char *strcpy(char *, const char *);

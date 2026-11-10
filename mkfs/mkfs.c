@@ -85,7 +85,12 @@ main(int argc, char *argv[])
     exit(1);
   }
 
-  assert((BSIZE % sizeof(struct dinode)) == 0);
+  // struct dinode no longer divides BSIZE evenly (it carries the creator
+  // gid), so IPB is rounded down and the tail of each inode block is unused.
+  // ninodeblocks above is computed from IPB, so the layout stays consistent
+  // with the kernel, which uses the same IPB / IBLOCK() from kernel/fs.h.
+  assert(sizeof(struct dinode) <= BSIZE);
+  assert(IPB >= 1 && IPB * sizeof(struct dinode) <= BSIZE);
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
   fsfd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666);
@@ -233,6 +238,7 @@ ialloc(ushort type)
   din.type = xshort(type);
   din.nlink = xshort(1);
   din.size = xint(0);
+  din.creator = xint(0); // files built by mkfs belong to group 0
   winode(inum, &din);
   return inum;
 }

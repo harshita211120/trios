@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "vm.h"
+#include "stat.h"
 
 uint64
 sys_exit(void)
@@ -110,11 +111,50 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Join process group gid. Children forked later inherit it.
 uint64
 sys_setgroup(void)
 {
   int gid;
+  struct proc *p = myproc();
 
   argint(0, &gid);
-  return setgroup(gid);
+  if (gid < 0 || gid >= NGROUP)
+    return -1;
+  acquire(&p->lock);
+  p->gid = gid;
+  release(&p->lock);
+  return 0;
+}
+
+// setbudget(gid, max, refill_per_100_ticks, mode)
+uint64
+sys_setbudget(void)
+{
+  int gid, max, refill, mode;
+
+  argint(0, &gid);
+  argint(1, &max);
+  argint(2, &refill);
+  argint(3, &mode);
+  return budget_set(gid, max, refill, mode);
+}
+
+// getbudget(gid, struct budgetinfo *) -- used by budgetstat.
+uint64
+sys_getbudget(void)
+{
+  int gid;
+  uint64 addr;
+  struct budgetinfo bi;
+  struct proc *p = myproc();
+
+  argint(0, &gid);
+  argaddr(1, &addr);
+  if (budget_get(gid, &bi) < 0)
+    return -1;
+  if (copyout(p->pagetable, p->sz, addr, (char *)&bi, sizeof(bi)) < 0)
+    return -1;
+  return 0;
 }

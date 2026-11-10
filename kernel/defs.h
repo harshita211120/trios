@@ -1,4 +1,5 @@
 // clang-format off
+struct budgetinfo;
 struct buf;
 struct context;
 struct file;
@@ -17,6 +18,13 @@ void            brelse(struct buf*);
 void            bwrite(struct buf*);
 void            bpin(struct buf*);
 void            bunpin(struct buf*);
+
+// budget.c
+void            budgetinit(void);
+int             charge(int, int);
+int             syscall_cost(int, struct proc*);
+int             budget_set(int, int, int, int);
+int             budget_get(int, struct budgetinfo*);
 
 // console.c
 void            consoleinit(void);
@@ -92,7 +100,6 @@ void            setkilled(struct proc*);
 struct cpu*     mycpu(void);
 struct proc*    myproc();
 void            procinit(void);
-void            budgetinit(void);
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            sleep_prepare(void*);
