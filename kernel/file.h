@@ -27,6 +27,7 @@ struct inode {
   short nlink;
   uint size;
   uint addrs[NDIRECT + 1];
+  uint creator; // copy of disk inode: gid of the creating group
 };
 
 // map major device number to device functions.

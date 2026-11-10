@@ -294,6 +294,9 @@ kfork(void)
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
+  // A child belongs to its parent's group and so shares its budget.
+  np->gid = p->gid;
+
   pid = np->pid;
 
   release(&np->lock);

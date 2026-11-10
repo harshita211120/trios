@@ -43,3 +43,6 @@ entry("sbrk");
 entry("pause");
 entry("uptime");
 entry("sync");
+entry("setgroup");
+entry("setbudget");
+entry("getbudget");

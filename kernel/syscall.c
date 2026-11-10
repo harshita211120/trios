@@ -103,6 +103,9 @@ extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
 extern uint64 sys_sync(void);
+extern uint64 sys_setgroup(void);
+extern uint64 sys_setbudget(void);
+extern uint64 sys_getbudget(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -130,6 +133,9 @@ static uint64 (*syscalls[])(void) = {
   [SYS_mkdir]   = sys_mkdir,
   [SYS_close]   = sys_close,
   [SYS_sync]    = sys_sync,
+  [SYS_setgroup]  = sys_setgroup,
+  [SYS_setbudget] = sys_setbudget,
+  [SYS_getbudget] = sys_getbudget,
   // clang-format on
 };
 
@@ -141,6 +147,15 @@ syscall(void)
 
   num = p->trapframe->a7;
   if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    // Irreversibility budget: pay for the call BEFORE doing any of its
+    // work. In BLOCK mode charge() sleeps until the group has refilled;
+    // in FAIL mode (or if the call can never be afforded) it returns -1
+    // and the work is never started.
+    if (charge(p->gid, syscall_cost(num, p)) < 0) {
+      p->trapframe->a0 = -1; // refused: the work doesn't happen
+      return;
+    }
+
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
     p->trapframe->a0 = syscalls[num]();

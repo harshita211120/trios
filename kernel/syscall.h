@@ -21,3 +21,6 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_sync   22
+#define SYS_setgroup  23
+#define SYS_setbudget 24
+#define SYS_getbudget 25
