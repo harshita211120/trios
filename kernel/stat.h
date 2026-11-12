@@ -20,4 +20,5 @@ struct budgetinfo {
   int n_allowed; // priced calls that were charged and ran
   int n_blocked; // priced calls that had to sleep for a refill
   int n_refused; // priced calls rejected with -1
+  int tainted;   // has any member of this group read untrusted data?
 };

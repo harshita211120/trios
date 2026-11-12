@@ -127,6 +127,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->gid = 0;
+  p->tainted = 0;
   p->state = USED;
 
   // Allocate a trapframe page.
@@ -168,6 +169,7 @@ freeproc(struct proc *p)
   p->sz = 0;
   p->pid = 0;
   p->gid = 0;
+  p->tainted = 0;
   p->name[0] = 0;
   p->chan = 0;
   p->killed = 0;
@@ -296,6 +298,7 @@ kfork(void)
 
   // A child belongs to its parent's group and so shares its budget.
   np->gid = p->gid;
+  np->tainted = p->tainted; // taint survives fork
 
   pid = np->pid;
 

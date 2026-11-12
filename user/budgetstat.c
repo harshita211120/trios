@@ -18,10 +18,10 @@ show(int gid)
   }
   if (!bi.used)
     return;
-  printf("group %d: budget %d/%d refill %d/100 ticks mode %s allowed %d blocked %d refused %d\n",
+  printf("group %d: budget %d/%d refill %d/100 ticks mode %s allowed %d blocked %d refused %d tainted %d\n",
          gid, bi.budget, bi.max, bi.refill,
          bi.mode == BUDGET_BLOCK ? "BLOCK" : "FAIL", bi.n_allowed,
-         bi.n_blocked, bi.n_refused);
+         bi.n_blocked, bi.n_refused, bi.tainted);
 }
 
 int

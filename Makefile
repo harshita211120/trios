@@ -153,10 +153,15 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_sync\
 	$U/_budgetstat\
+	$U/_tainttest\
+	$U/_combotest\
+	$U/_agentrun\
+	$U/_budgetset\
+	$U/_budgettest\
 
-fs.img: mkfs/mkfs README $(UPROGS)
-	mkfs/mkfs fs.img README $(UPROGS)
-
+fs.img: mkfs/mkfs README inbox.txt report.txt important.txt $(UPROGS)
+	mkfs/mkfs fs.img README inbox.txt report.txt important.txt $(UPROGS)
+	
 -include kernel/*.d user/*.d
 
 clean: 
