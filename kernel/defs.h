@@ -25,6 +25,8 @@ int             charge(int, int);
 int             syscall_cost(int, struct proc*);
 int             budget_set(int, int, int, int);
 int             budget_get(int, struct budgetinfo*);
+void            group_taint(int);
+int             group_is_tainted(int);
 
 // console.c
 void            consoleinit(void);

@@ -17,6 +17,12 @@
 #define COST_WRITE_OTHER   3  // write() to any other file
 #define COST_EXEC_FOREIGN  5  // exec() of a file another group created
 
+// Prices once the caller or its group has read untrusted data.
+#define COST_UNLINK_TAINTED       100
+#define COST_WRITE_CONSOLE_TAINT  3
+#define COST_WRITE_OTHER_TAINT    9
+#define COST_EXEC_FOREIGN_TAINT   25
+
 #define REFILL_PERIOD 100 // ticks per refill period
 
 // Shared state for one process group.
@@ -31,6 +37,7 @@ struct group {
   int n_allowed;
   int n_blocked;
   int n_refused;
+  int tainted;         // a member read untrusted data
 };
 
 // One shared budget per group.
@@ -56,6 +63,7 @@ budgetinit(void)
     groups[i].n_allowed = 0;
     groups[i].n_blocked = 0;
     groups[i].n_refused = 0;
+    groups[i].tainted = 0;
   }
 
   // Group 0 is the default group for ordinary processes.
@@ -174,9 +182,13 @@ charge(int gid, int cost)
 int
 syscall_cost(int num, struct proc *p)
 {
+  int taint = p->tainted || group_is_tainted(p->gid);
+
   switch (num) {
   case SYS_unlink:
-    return COST_UNLINK;
+    if (p->tainted)
+      return 0; // sys_unlink will deny it; don't spend budget
+    return taint ? COST_UNLINK_TAINTED : COST_UNLINK;
 
   case SYS_write: {
     int fd;
@@ -186,12 +198,13 @@ syscall_cost(int num, struct proc *p)
     if (fd < 0 || fd >= NOFILE || (f = p->ofile[fd]) == 0)
       return 0; // bad fd: write will fail by itself, nothing to undo
     if (f->type == FD_DEVICE)
-      return f->major == CONSOLE ? COST_WRITE_CONSOLE : 0;
+      return f->major == CONSOLE
+               ? (taint ? COST_WRITE_CONSOLE_TAINT : COST_WRITE_CONSOLE)
+               : 0;
     if (f->type == FD_INODE) {
-      // ip->creator is written once, when the inode is created, and the
-      // open file holds a reference, so it is stable and valid here.
-      return f->ip->creator == (uint)p->gid ? COST_WRITE_OWN
-                                            : COST_WRITE_OTHER;
+      if (f->ip->creator == (uint)p->gid)
+        return COST_WRITE_OWN;
+      return taint ? COST_WRITE_OTHER_TAINT : COST_WRITE_OTHER;
     }
     return 0; // pipes are not files on disk
   }
@@ -210,7 +223,7 @@ syscall_cost(int num, struct proc *p)
     }
     ilock(ip); // loads ip->creator from disk if needed
     if (ip->type == T_FILE && ip->creator != (uint)p->gid)
-      cost = COST_EXEC_FOREIGN;
+      cost = taint ? COST_EXEC_FOREIGN_TAINT : COST_EXEC_FOREIGN;
     iunlockput(ip);
     end_op();
     return cost;
@@ -246,6 +259,7 @@ budget_set(int gid, int max, int refill, int mode)
   g->n_allowed = 0;
   g->n_blocked = 0;
   g->n_refused = 0;
+  g->tainted = 0;
   release(&g->lock);
   return 0;
 }
@@ -272,6 +286,38 @@ budget_get(int gid, struct budgetinfo *bi)
   bi->n_allowed = g->n_allowed;
   bi->n_blocked = g->n_blocked;
   bi->n_refused = g->n_refused;
+  bi->tainted = g->tainted;
   release(&g->lock);
   return 0;
+}
+
+// Mark group gid as having read untrusted data. Group 0 is the default group
+// for every ordinary process, so tainting it would taint the whole system;
+// it is deliberately ignored.
+void
+group_taint(int gid)
+{
+  struct group *g;
+
+  if (gid <= 0 || gid >= NGROUP)
+    return;
+  g = &groups[gid];
+  acquire(&g->lock);
+  g->tainted = 1;
+  release(&g->lock);
+}
+
+int
+group_is_tainted(int gid)
+{
+  struct group *g;
+  int t;
+
+  if (gid <= 0 || gid >= NGROUP)
+    return 0;
+  g = &groups[gid];
+  acquire(&g->lock);
+  t = g->tainted;
+  release(&g->lock);
+  return t;
 }

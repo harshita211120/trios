@@ -205,9 +205,16 @@ sys_unlink(void)
   struct dirent de;
   char name[DIRSIZ], path[MAXPATH];
   uint off;
+  struct proc *p = myproc();
 
   if (argstr(0, path, MAXPATH) < 0)
     return -1;
+
+  if (p->tainted) {
+    printk("[KERNEL DENIAL] Process %d (%s) is TAINTED. unlink() blocked by kernel!\n",
+           p->pid, p->name);
+    return -1;
+  }
 
   begin_op();
   if ((dp = nameiparent(path, name)) == 0) {
@@ -391,6 +398,15 @@ sys_open(void)
 
   iunlock(ip);
   end_op();
+
+  if (strncmp(path, "inbox.txt", MAXPATH) == 0 ||
+      strncmp(path, "/inbox.txt", MAXPATH) == 0) {
+    struct proc *tp = myproc();
+    tp->tainted = 1;
+    group_taint(tp->gid);
+    printk("[KERNEL TAINT] Process %d (%s) opened untrusted inbox.txt -> TAINTED.\n",
+           tp->pid, tp->name);
+  }
 
   return fd;
 }
